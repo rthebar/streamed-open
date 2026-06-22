@@ -12,7 +12,6 @@ const state = {
   loading: false,
   error: null,
   searchQuery: '',
-  timers: [],
   scoresMap: null,
   activeSources: null,
 };
@@ -75,6 +74,13 @@ function fetchStreams(source, id) {
 }
 
 // Utilities
+function escapeHtml(str) {
+  if (!str) return '';
+  const div = document.createElement('div');
+  div.textContent = str;
+  return div.innerHTML;
+}
+
 function parseScore(title) {
   const m = title.match(/(\d+)\s*[-–:]\s*(\d+)/);
   return m ? { home: m[1], away: m[2] } : null;
@@ -122,6 +128,10 @@ function getSportTimeInfo(category, matchDate) {
 
   if (elapsed < 0) {
     return { status: 'upcoming', label: 'Starting soon' };
+  }
+
+  if (elapsed > 14400000) {
+    return { status: 'finished', label: 'Finished' };
   }
 
   const config = SPORT_TIMING[category];
@@ -185,7 +195,6 @@ function getSportTimeInfo(category, matchDate) {
 
 function getMatchStatus(match) {
   const now = Date.now();
-  if (match.category === 'live' || match._isLive) return 'live';
   if (now - match.date < 0) return 'upcoming';
   if (now - match.date > 14400000) return 'finished';
   return 'live';
@@ -217,10 +226,10 @@ function renderSports(sports) {
     const li = document.createElement('li');
     li.className = 'sport-item';
     li.dataset.sport = sport.id;
-    li.dataset.label = `${sport.name} Matches`;
+    li.dataset.label = `${escapeHtml(sport.name)} Matches`;
     li.innerHTML = `
       <span class="sport-icon">${getSportIcon(sport.id)}</span>
-      <span class="sport-name">${sport.name}</span>
+      <span class="sport-name">${escapeHtml(sport.name)}</span>
     `;
     li.addEventListener('click', () => selectSport(sport.id, `${sport.name} Matches`));
     dom.sportsList.appendChild(li);
@@ -247,7 +256,7 @@ function renderMatches(matches) {
           <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
         </svg>
         <h3>Failed to load matches</h3>
-        <p>${state.error}</p>
+        <p>${escapeHtml(state.error)}</p>
         <button onclick="window.location.reload()">Try Again</button>
       </div>
     `;
@@ -296,7 +305,9 @@ function renderMatches(matches) {
     dom.matchesGrid.appendChild(card);
   });
 
-  startTimers();
+  if (filtered.length > 0) {
+    startTimers();
+  }
 }
 
 function getPosterUrl(match) {
@@ -368,7 +379,7 @@ function createMatchCard(match, index) {
         ${status === 'live' ? '<span class="badge badge-live"><span class="badge-dot"></span>LIVE</span>' : ''}
         ${status === 'upcoming' ? '<span class="badge badge-upcoming">Upcoming</span>' : ''}
         ${match.popular ? '<span class="badge badge-popular">Popular</span>' : ''}
-        <span class="badge badge-sport">${match.category}</span>
+        <span class="badge badge-sport">${escapeHtml(match.category)}</span>
       </div>
       <span class="match-time" data-date="${match.date}">${status === 'live' && timeInfo ? timeInfo.label : match.date ? formatDate(match.date) : ''}</span>
     </div>
@@ -376,7 +387,7 @@ function createMatchCard(match, index) {
 
   const footerHtml = `
     <div class="match-card-footer">
-      <span class="match-date">
+      <span class="match-date" data-date="${match.date}">
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
         ${formatDate(match.date)}
       </span>
@@ -394,10 +405,10 @@ function createMatchCard(match, index) {
     card.className = `match-card single-entity${posterClass}`;
 
     card.innerHTML = `
-      ${posterUrl ? `<img class="card-poster" src="${posterUrl}" alt="${match.title}" loading="lazy" onerror="this.style.display='none'" />` : ''}
+      ${posterUrl ? `<img class="card-poster" src="${posterUrl}" alt="${escapeHtml(match.title)}" loading="lazy" onerror="this.style.display='none'" />` : ''}
       <div class="card-body">
         ${headerHtml}
-        <div class="event-title">${match.title}</div>
+        <div class="event-title">${escapeHtml(match.title)}</div>
         <div class="match-status-line${status === 'live' ? ' status-live' : status === 'upcoming' ? ' status-upcoming' : ' status-finished'}" data-timer="${match.id}"${status === 'live' && timeInfo ? `>${timeInfo.label}${timeInfo.detail ? ' ' + timeInfo.detail : ''}` : status === 'upcoming' ? `>${formatMatchTime(match.date)}` : ` style="display:none">`}</div>
         ${footerHtml}
       </div>
@@ -415,28 +426,28 @@ function createMatchCard(match, index) {
     const awayInitial = awayName ? awayName.charAt(0).toUpperCase() : '?';
 
     card.innerHTML = `
-      ${posterUrl ? `<img class="card-poster" src="${posterUrl}" alt="${match.title}" loading="lazy" onerror="this.style.display='none'" />` : ''}
+      ${posterUrl ? `<img class="card-poster" src="${posterUrl}" alt="${escapeHtml(match.title)}" loading="lazy" onerror="this.style.display='none'" />` : ''}
       <div class="card-body">
         ${headerHtml}
         <div class="match-teams">
           <div class="team">
             ${homeBadge
-              ? `<img class="team-badge" src="${homeBadge}" alt="${homeName}" loading="lazy" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'" /><div class="team-badge-placeholder" style="display:none">${homeInitial}</div>`
-              : `<div class="team-badge-placeholder">${homeInitial}</div>`
+              ? `<img class="team-badge" src="${homeBadge}" alt="${escapeHtml(homeName)}" loading="lazy" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'" /><div class="team-badge-placeholder" style="display:none">${escapeHtml(homeInitial)}</div>`
+              : `<div class="team-badge-placeholder">${escapeHtml(homeInitial)}</div>`
             }
-            <span class="team-name">${homeName}</span>
+            <span class="team-name">${escapeHtml(homeName)}</span>
           </div>
 
           <div class="match-score-display">
-            <span class="score ${score ? 'has-score' : ''}">${score ? `${score.home}-${score.away}` : ''}</span>
+            <span class="score ${score ? 'has-score' : ''}">${score ? `${escapeHtml(score.home)}-${escapeHtml(score.away)}` : ''}</span>
           </div>
 
           <div class="team">
             ${awayBadge
-              ? `<img class="team-badge" src="${awayBadge}" alt="${awayName}" loading="lazy" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'" /><div class="team-badge-placeholder" style="display:none">${awayInitial}</div>`
-              : `<div class="team-badge-placeholder">${awayInitial}</div>`
+              ? `<img class="team-badge" src="${awayBadge}" alt="${escapeHtml(awayName)}" loading="lazy" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'" /><div class="team-badge-placeholder" style="display:none">${escapeHtml(awayInitial)}</div>`
+              : `<div class="team-badge-placeholder">${escapeHtml(awayInitial)}</div>`
             }
-            <span class="team-name">${awayName}</span>
+            <span class="team-name">${escapeHtml(awayName)}</span>
           </div>
         </div>
 
@@ -490,7 +501,7 @@ async function openStreamModal(match) {
   dom.sourceTabs.innerHTML = match.sources
     .map(
       (s, i) =>
-        `<button class="source-tab ${i === 0 ? 'active' : ''}" data-source="${s.source}" data-id="${s.id}">${s.source}</button>`
+        `<button class="source-tab ${i === 0 ? 'active' : ''}" data-source="${escapeHtml(s.source)}" data-id="${escapeHtml(s.id)}">${escapeHtml(s.source)}</button>`
     )
     .join('');
 
@@ -526,7 +537,7 @@ async function loadStreams(source, id) {
       item.className = 'stream-item';
       item.innerHTML = `
         <div class="stream-item-info">
-          <span class="stream-language">${stream.language || 'Unknown'}</span>
+          <span class="stream-language">${escapeHtml(stream.language) || 'Unknown'}</span>
           ${stream.hd ? '<span class="stream-hd">HD</span>' : ''}
           ${stream.streamNo ? `<span style="font-size:0.78rem;color:var(--text-muted)">#${stream.streamNo}</span>` : ''}
         </div>
@@ -572,6 +583,8 @@ function startTimers() {
 }
 
 function updateTimers() {
+  if (state.matches.length === 0) return;
+
   const timeEls = $$('[data-date]');
   const timerEls = $$('[data-timer]');
 
@@ -615,7 +628,7 @@ function formatElapsed(ms) {
 // Navigation
 function selectView(view) {
   state.currentView = view;
-  state.currentSport = view === 'live' ? null : view === 'today' ? null : null;
+  state.currentSport = null;
 
   dom.navTabs.forEach((tab) => {
     tab.classList.toggle('active', tab.dataset.view === view);
@@ -669,16 +682,14 @@ async function loadMatches() {
     state.loading = false;
 
     // Update live count
-    const liveCount = state.matches.filter((m) => {
-      const now = Date.now();
-      return Math.abs(now - m.date) < 14400000;
-    }).length;
+    const liveCount = state.matches.filter((m) => getMatchStatus(m) === 'live').length;
     dom.liveCount.textContent = liveCount;
 
     renderMatches(state.matches);
 
-    // Fetch scores asynchronously (don't block UI)
-    fetchScoresForMatches(state.matches);
+    // Fetch scores only for matches that have started (not upcoming)
+    const startedMatches = state.matches.filter((m) => getMatchStatus(m) !== 'upcoming');
+    fetchScoresForMatches(startedMatches);
   } catch (err) {
     state.loading = false;
     state.error = err.message;
@@ -750,18 +761,18 @@ function updateCardScore(card, score) {
 
   if (scoreDisplay) {
     if (category === 'cricket') {
-      const homePart = score.home != null ? score.home + (score.homeOvers ? ` (${score.homeOvers})` : '') : '';
-      const awayPart = score.away != null ? score.away + (score.awayOvers ? ` (${score.awayOvers})` : '') : '';
+      const homePart = score.home != null ? escapeHtml(score.home) + (score.homeOvers ? ` (${escapeHtml(score.homeOvers)})` : '') : '';
+      const awayPart = score.away != null ? escapeHtml(score.away) + (score.awayOvers ? ` (${escapeHtml(score.awayOvers)})` : '') : '';
       if (homePart || awayPart) {
         scoreDisplay.textContent = homePart && awayPart ? `${homePart} | ${awayPart}` : (homePart || awayPart);
         scoreDisplay.classList.add('has-score');
       }
     } else {
       if (score.home != null && score.away != null) {
-        scoreDisplay.textContent = `${score.home}-${score.away}`;
+        scoreDisplay.textContent = `${escapeHtml(score.home)}-${escapeHtml(score.away)}`;
         scoreDisplay.classList.add('has-score');
       } else if (score.home != null) {
-        scoreDisplay.textContent = score.home;
+        scoreDisplay.textContent = escapeHtml(score.home);
         scoreDisplay.classList.add('has-score');
       }
     }
@@ -864,7 +875,7 @@ function init() {
   });
 
   document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape') dom.modalClose.click();
+    if (e.key === 'Escape' && dom.modal.classList.contains('open')) dom.modalClose.click();
   });
 
   // Close sidebar on outside click (mobile)
