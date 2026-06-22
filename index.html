@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Streamed - Live Sports Streaming</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><text y='28' font-size='28'>⚡</text></svg>" />
+  <link rel="stylesheet" href="/src/style.css" />
+</head>
+<body>
+  <div id="app">
+    <header class="header">
+      <div class="header-inner">
+        <div class="logo">
+          <svg class="logo-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
+          </svg>
+          <span class="logo-text">Streamed</span>
+        </div>
+
+        <div class="header-center">
+          <nav class="nav-tabs" id="navTabs">
+            <button class="nav-tab active" data-view="live">
+              <span class="live-dot-small"></span>
+              Live
+            </button>
+            <button class="nav-tab" data-view="today">Today</button>
+            <button class="nav-tab" data-view="all">All Matches</button>
+          </nav>
+          <div class="search-box">
+            <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="11" cy="11" r="8" /><path d="m21 21-4.35-4.35" />
+            </svg>
+            <input type="text" class="search-input" id="searchInput" placeholder="Search matches..." />
+          </div>
+        </div>
+
+        <button class="refresh-btn" id="refreshBtn" title="Refresh">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 2v6h-6M3 12a9 9 0 0 1 15.36-5.64L21 8M3 22v-6h6M21 12a9 9 0 0 1-15.36 5.64L3 16" />
+          </svg>
+        </button>
+      </div>
+    </header>
+
+    <div class="layout">
+      <aside class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="sidebar-icon">
+            <rect x="3" y="3" width="18" height="18" rx="2" /><path d="M3 9h18M9 21V9" />
+          </svg>
+          <h3>Categories</h3>
+        </div>
+        <ul class="sports-list" id="sportsList">
+          <li class="sport-item active" data-sport="live" data-label="Live Matches">
+            <span class="sport-icon sport-icon-live"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="4"/><line x1="21.17" y1="8" x2="12" y2="8"/><line x1="3.95" y1="6.06" x2="8.54" y2="14"/><line x1="10.88" y1="21.94" x2="15.46" y2="14"/></svg></span>
+            <span class="sport-name">Live</span>
+            <span class="sport-count" id="liveCount">0</span>
+          </li>
+          <li class="sport-item" data-sport="all" data-label="All Matches">
+            <span class="sport-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18"/><path d="M9 21V9"/></svg></span>
+            <span class="sport-name">All Sports</span>
+          </li>
+          <li class="sport-divider"></li>
+        </ul>
+        <div class="sidebar-attribution" id="sidebarAttribution"></div>
+      </aside>
+
+      <main class="main-content">
+        <div class="content-header">
+          <div class="content-header-left">
+            <h2 id="contentTitle">Live Matches</h2>
+            <span class="match-count" id="matchCount">0 matches</span>
+          </div>
+          <button class="sidebar-toggle" id="sidebarToggle">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="3" y1="6" x2="21" y2="6" /><line x1="3" y1="12" x2="21" y2="12" /><line x1="3" y1="18" x2="21" y2="18" />
+            </svg>
+          </button>
+        </div>
+
+        <div class="matches-grid" id="matchesGrid">
+          <div class="loading-state" id="loadingState">
+            <div class="spinner"></div>
+            <p>Loading matches...</p>
+          </div>
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="streamModal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <div class="modal-header-info">
+          <h3 id="modalTitle">Match Stream</h3>
+          <span class="modal-category" id="modalCategory"></span>
+        </div>
+        <button class="modal-close" id="modalClose">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
+          </svg>
+        </button>
+      </div>
+      <div class="modal-body">
+        <div class="stream-container" id="streamContainer">
+          <div class="stream-placeholder">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="placeholder-icon">
+              <polygon points="5 3 19 12 5 21 5 3" />
+            </svg>
+            <p>Select a source below to watch</p>
+          </div>
+        </div>
+        <div class="source-tabs" id="sourceTabs"></div>
+        <div class="stream-list" id="streamList"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast-container" id="toastContainer"></div>
+
+  <script type="module" src="/src/main.js"></script>
+</body>
+</html>
