@@ -561,9 +561,11 @@ async function loadStreams(source, id) {
       item.innerHTML = `
         <div class="stream-item-info">
           <span class="stream-language">${escapeHtml(stream.language) || 'Unknown'}</span>
-          ${stream.hd ? '<span class="stream-hd">HD</span>' : ''}
-          ${stream.streamNo ? `<span style="font-size:0.78rem;color:var(--text-muted)">#${stream.streamNo}</span>` : ''}
-          ${viewers > 0 ? `<span class="stream-viewers">${viewers.toLocaleString()} viewers</span>` : ''}
+          <div class="stream-item-meta">
+            ${stream.hd ? '<span class="stream-hd">HD</span>' : ''}
+            ${stream.streamNo ? `<span class="stream-no">#${stream.streamNo}</span>` : ''}
+            ${viewers > 0 ? `<span class="stream-viewers"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>${viewers.toLocaleString()}</span>` : ''}
+          </div>
         </div>
         <button class="play-btn" data-embed="${stream.embedUrl || ''}">
           <svg viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>
