@@ -307,6 +307,27 @@ function renderMatches(matches) {
 
   if (filtered.length > 0) {
     startTimers();
+    loadAllMatchViewers(filtered);
+  }
+}
+
+async function loadAllMatchViewers(matches) {
+  for (const match of matches) {
+    if (!match.sources || match.sources.length === 0) continue;
+    const el = document.querySelector(`[data-match-viewers="${match.id}"]`);
+    if (!el) continue;
+    try {
+      const results = await Promise.all(
+        match.sources.map((s) => fetchStreams(s.source, s.id).catch(() => []))
+      );
+      const total = results.reduce(
+        (sum, streams) => sum + (streams || []).reduce((s, st) => s + (st.viewers || 0), 0),
+        0
+      );
+      el.textContent = total > 0 ? `${total.toLocaleString()} viewers` : '';
+    } catch {
+      el.textContent = '';
+    }
   }
 }
 
@@ -395,6 +416,7 @@ function createMatchCard(match, index) {
         ? `<span class="match-sources-count">${match.sources.length} source${match.sources.length > 1 ? 's' : ''}</span>`
         : ''
       }
+      <span class="match-viewers-count" data-match-viewers="${match.id}"></span>
       <button class="watch-btn">Watch</button>
     </div>
   `;
@@ -535,11 +557,13 @@ async function loadStreams(source, id) {
     streams.forEach((stream) => {
       const item = document.createElement('div');
       item.className = 'stream-item';
+      const viewers = stream.viewers ?? 0;
       item.innerHTML = `
         <div class="stream-item-info">
           <span class="stream-language">${escapeHtml(stream.language) || 'Unknown'}</span>
           ${stream.hd ? '<span class="stream-hd">HD</span>' : ''}
           ${stream.streamNo ? `<span style="font-size:0.78rem;color:var(--text-muted)">#${stream.streamNo}</span>` : ''}
+          ${viewers > 0 ? `<span class="stream-viewers">${viewers.toLocaleString()} viewers</span>` : ''}
         </div>
         <button class="play-btn" data-embed="${stream.embedUrl || ''}">
           <svg viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>

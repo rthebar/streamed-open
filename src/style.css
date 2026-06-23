@@ -721,6 +721,15 @@ body {
   gap: 4px;
 }
 
+.match-viewers-count {
+  font-size: 0.75rem;
+  color: var(--green);
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
 .watch-btn {
   padding: 5px 14px;
   border: none;
@@ -1005,6 +1014,15 @@ body {
   color: var(--green);
   border-radius: 4px;
   font-weight: 700;
+}
+
+.stream-viewers {
+  font-size: 0.7rem;
+  padding: 2px 6px;
+  background: rgba(99, 102, 241, 0.15);
+  color: var(--accent);
+  border-radius: 4px;
+  font-weight: 600;
 }
 
 .play-btn {
