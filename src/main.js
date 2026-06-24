@@ -480,10 +480,8 @@ function createMatchCard(match, index) {
     `;
   }
 
-  card.addEventListener('click', (e) => {
-    if (e.target.closest('.watch-btn')) {
-      openStreamModal(match);
-    }
+  card.addEventListener('click', () => {
+    openStreamModal(match);
   });
 
   card.dataset.matchId = match.id;
