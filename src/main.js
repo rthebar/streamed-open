@@ -24,6 +24,9 @@ const dom = {
   navTabs: $$('.nav-tab'),
   sportsList: $('#sportsList'),
   matchesGrid: $('#matchesGrid'),
+  popularSection: $('#popularSection'),
+  popularGrid: $('#popularGrid'),
+  liveSection: $('#liveSection'),
   contentTitle: $('#contentTitle'),
   matchCount: $('#matchCount'),
   loadingState: $('#loadingState'),
@@ -71,6 +74,14 @@ function fetchMatches(view, sport) {
 
 function fetchStreams(source, id) {
   return apiFetch(`/api/stream/${source}/${id}`);
+}
+
+function fetchPopularWithViewers() {
+  return apiFetch('/api/matches/live/popular-viewcount');
+}
+
+function fetchSportPopular(sportId) {
+  return apiFetch(`/api/matches/${sportId}/popular`);
 }
 
 // Utilities
@@ -307,28 +318,138 @@ function renderMatches(matches) {
 
   if (filtered.length > 0) {
     startTimers();
-    loadAllMatchViewers(filtered);
+    if (filtered[0]._viewers === undefined) {
+      loadAllMatchViewers(filtered);
+    } else {
+      renderMatchCards(filtered);
+    }
   }
 }
 
+function renderMatchCards(matches) {
+  dom.matchesGrid.innerHTML = '';
+  matches
+    .filter((m) => getMatchStatus(m) !== 'finished')
+    .forEach((match, i) => {
+      const card = createMatchCard(match, i);
+      dom.matchesGrid.appendChild(card);
+    });
+}
+
 async function loadAllMatchViewers(matches) {
+  const isHome = state.currentView === 'live' && !state.currentSport;
+
+  // Fetch popular matches with viewer counts from the API
+  let popularData = [];
+  let sportPopularData = [];
+  try {
+    const promises = [fetchPopularWithViewers()];
+    if (isHome && state.sports.length > 0) {
+      promises.push(...state.sports.map((s) => fetchSportPopular(s.id).catch(() => [])));
+    }
+    const results = await Promise.all(promises);
+    popularData = results[0] || [];
+    if (isHome) {
+      sportPopularData = results.slice(1).flat();
+    }
+  } catch {
+    // Fallback: try individual stream fetching
+  }
+
+  // Build a map of match.id -> viewers from the popular-viewcount API
+  const popularViewersMap = new Map();
+  const popularMatchesMap = new Map();
+
+  if (Array.isArray(popularData)) {
+    for (const pm of popularData) {
+      popularViewersMap.set(pm.id, pm.viewers || 0);
+      popularMatchesMap.set(pm.id, pm);
+    }
+  }
+
+  // Add sport popular matches (these may not have viewers)
+  if (isHome && Array.isArray(sportPopularData)) {
+    for (const pm of sportPopularData) {
+      if (!popularMatchesMap.has(pm.id)) {
+        popularMatchesMap.set(pm.id, pm);
+      }
+    }
+  }
+
+  // Apply viewers to state.matches
+  const popularMatches = [];
+  for (const [id, pm] of popularMatchesMap) {
+    const viewers = popularViewersMap.get(id) || 0;
+    const existing = state.matches.find((m) => m.id === id);
+    if (existing) {
+      existing._viewers = viewers || existing._viewers || 0;
+      existing.popular = true;
+      popularMatches.push(existing);
+    } else {
+      pm._viewers = viewers;
+      popularMatches.push(pm);
+    }
+  }
+
+  // For matches without viewers from the popular API, fetch individually
   for (const match of matches) {
-    if (!match.sources || match.sources.length === 0) continue;
-    const el = document.querySelector(`[data-match-viewers="${match.id}"]`);
-    if (!el) continue;
+    if (popularViewersMap.has(match.id)) continue;
+    if (!match.sources || match.sources.length === 0) {
+      match._viewers = 0;
+      continue;
+    }
     try {
       const results = await Promise.all(
         match.sources.map((s) => fetchStreams(s.source, s.id).catch(() => []))
       );
-      const total = results.reduce(
+      match._viewers = results.reduce(
         (sum, streams) => sum + (streams || []).reduce((s, st) => s + (st.viewers || 0), 0),
         0
       );
-      el.textContent = total > 0 ? `${total.toLocaleString()} viewers` : '';
     } catch {
-      el.textContent = '';
+      match._viewers = 0;
     }
   }
+
+  state.matches.sort((a, b) => (b._viewers || 0) - (a._viewers || 0));
+
+  const showPopular = isHome && !state.searchQuery;
+  const popular = showPopular
+    ? popularMatches
+        .filter((m) => {
+          const status = getMatchStatus(m);
+          return (status === 'live' || status === 'upcoming') && (m._viewers || 0) > 100;
+        })
+        .sort((a, b) => (b._viewers || 0) - (a._viewers || 0))
+    : [];
+
+  if (popular.length > 0) {
+    dom.popularSection.style.display = '';
+    dom.popularGrid.innerHTML = '';
+    popular.forEach((match, i) => {
+      dom.popularGrid.appendChild(createMatchCard(match, i));
+    });
+  } else {
+    dom.popularSection.style.display = 'none';
+  }
+
+  dom.liveSection.querySelector('.section-title').style.display = showPopular ? '' : 'none';
+
+  renderMatchCards(state.matches);
+
+  // Update all viewer badges in the DOM (after both sections render)
+  const allViewersMap = new Map();
+  state.matches.forEach((m) => allViewersMap.set(m.id, m._viewers || 0));
+  popularMatches.forEach((m) => {
+    if (!allViewersMap.has(m.id)) allViewersMap.set(m.id, m._viewers || 0);
+  });
+
+  allViewersMap.forEach((viewers, id) => {
+    const el = document.querySelector(`[data-match-viewers="${id}"]`);
+    if (el) {
+      el.textContent = viewers > 0 ? `${viewers.toLocaleString()} viewers` : '';
+    }
+  });
 }
 
 function getPosterUrl(match) {

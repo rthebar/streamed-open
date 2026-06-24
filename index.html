@@ -82,10 +82,18 @@
           </button>
         </div>
 
-        <div class="matches-grid" id="matchesGrid">
-          <div class="loading-state" id="loadingState">
-            <div class="spinner"></div>
-            <p>Loading matches...</p>
+        <div id="popularSection" class="popular-section" style="display:none">
+          <h3 class="section-title">Popular Live <span class="section-subtitle">(by viewers)</span></h3>
+          <div class="matches-grid" id="popularGrid"></div>
+        </div>
+
+        <div id="liveSection" class="popular-section">
+          <h3 class="section-title">Live Now</h3>
+          <div class="matches-grid" id="matchesGrid">
+            <div class="loading-state" id="loadingState">
+              <div class="spinner"></div>
+              <p>Loading matches...</p>
+            </div>
           </div>
         </div>
       </main>
