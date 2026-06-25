@@ -35,7 +35,6 @@ const LEAGUE_FALLBACKS = {
 };
 
 const CATEGORY_EXTRA_SOURCES = {
-  cricket: ['cricketProxy'],
   'motor-sports': ['openf1'],
   basketball: ['balldontlie'],
 };
@@ -113,14 +112,6 @@ function parseESPNEvent(event) {
     period: comp.status?.period || null,
     source: 'espn',
   };
-}
-
-// ---- Cricket Proxy (ESPNcricinfo via local proxy) ----
-
-async function fetchCricketProxy() {
-  const res = await fetch('https://streamed.pk/api/cricket/live', { signal: AbortSignal.timeout(10000) });
-  if (!res.ok) throw new Error(`Cricket proxy ${res.status}`);
-  return res.json();
 }
 
 // ---- OpenF1 (motorsports) ----
@@ -305,17 +296,7 @@ export async function fetchScoresForCategory(category) {
   const extraSources = CATEGORY_EXTRA_SOURCES[category] || [];
   for (const src of extraSources) {
     try {
-      if (src === 'cricketProxy') {
-        const parsed = await fetchCricketProxy();
-        for (const ev of parsed) {
-          const dup = allEvents.some(
-            (e) =>
-              normalize(e.homeName) === normalize(ev.homeName) &&
-              normalize(e.awayName) === normalize(ev.awayName)
-          );
-          if (!dup) allEvents.push(ev);
-        }
-      } else if (src === 'openf1') {
+      if (src === 'openf1') {
         const parsed = await fetchOpenF1();
         allEvents.push(...parsed);
       } else if (src === 'balldontlie') {
