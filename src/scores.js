@@ -118,7 +118,7 @@ function parseESPNEvent(event) {
 // ---- Cricket Proxy (ESPNcricinfo via local proxy) ----
 
 async function fetchCricketProxy() {
-  const res = await fetch('/api/cricket/live', { signal: AbortSignal.timeout(10000) });
+  const res = await fetch('https://streamed.pk/api/cricket/live', { signal: AbortSignal.timeout(10000) });
   if (!res.ok) throw new Error(`Cricket proxy ${res.status}`);
   return res.json();
 }
